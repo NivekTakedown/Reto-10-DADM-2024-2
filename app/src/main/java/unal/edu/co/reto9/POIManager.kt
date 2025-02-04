@@ -37,18 +37,24 @@ class POIManager(private val mapView: MapView) {
         name: String,
         description: String,
         category: String,
-        phone: String
+        phone: String,
+        poi: AcaciasPOI
     ) {
         val marker = Marker(mapView)
         marker.position = GeoPoint(latitude, longitude)
         marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
         
-        // Set title and format description for default bubble
         marker.title = name
         marker.snippet = """
-            ${category}
-            ${description}
-            Tel: ${phone}
+            Categoría: ${category}
+            
+            Dirección: ${description}
+            
+            Teléfono: ${phone}
+            ${poi.whatsapp?.let { "WhatsApp: $it\n" } ?: ""}
+            ${poi.email?.let { "Email: $it\n" } ?: ""}
+            ${poi.horarioatencion?.let { "Horario: $it\n" } ?: ""}
+            ${poi.propietario?.let { "Propietario: $it" } ?: ""}
         """.trimIndent()
         
         mapView.overlays.add(marker)
@@ -71,6 +77,7 @@ class POIManager(private val mapView: MapView) {
                 
                 if (lat != null && lon != null && lat != 0.0 && lon != 0.0) {
                     addMarker(
+                        poi = poi,
                         latitude = lat,
                         longitude = lon,
                         name = poi.nombre,
