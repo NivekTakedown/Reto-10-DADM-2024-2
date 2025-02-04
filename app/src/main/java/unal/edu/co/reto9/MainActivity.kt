@@ -142,12 +142,14 @@ class MainActivity : AppCompatActivity(), RadiusDialogFragment.RadiusDialogListe
     }
 
     override fun onRadiusUpdated() {
-        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-            if (location != null) {
-                fetchPOIs(location.latitude, location.longitude)
-            }
-        }
+        val sharedPreferences = getSharedPreferences("app_prefs", MODE_PRIVATE)
+        val maxEntries = sharedPreferences.getInt("max_entries", 50)
+        val selectedTypes = sharedPreferences.getStringSet("poi_types", null) ?: emptySet()
+        
+        poiManager.fetchPOIs(
+            selectedCategories = selectedTypes,
+            maxEntries = maxEntries
+        )
     }
 
     override fun onPOITypesUpdated() {

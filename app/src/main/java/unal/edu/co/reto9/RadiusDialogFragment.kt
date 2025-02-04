@@ -28,19 +28,20 @@ class RadiusDialogFragment : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         sharedPreferences = requireActivity().getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        val radiusInput = TextInputEditText(requireContext())
-        radiusInput.hint = "Enter radius in meters"
-        radiusInput.setText(sharedPreferences.getInt("search_radius", 1000).toString())
+        val input = TextInputEditText(requireContext())
+        input.hint = "Número máximo de lugares"
+        input.setText(sharedPreferences.getInt("max_entries", 50).toString())
 
         return MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Set Search Radius")
-            .setView(radiusInput)
-            .setPositiveButton("Save") { _, _ ->
-                val radius = radiusInput.text.toString().toIntOrNull() ?: 1000
-                sharedPreferences.edit().putInt("search_radius", radius).apply()
+            .setTitle("Configurar límite de lugares")
+            .setMessage("Ingrese el número máximo de lugares a mostrar")
+            .setView(input)
+            .setPositiveButton("Guardar") { _, _ ->
+                val maxEntries = input.text.toString().toIntOrNull() ?: 50
+                sharedPreferences.edit().putInt("max_entries", maxEntries).apply()
                 listener?.onRadiusUpdated()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton("Cancelar", null)
             .create()
     }
 

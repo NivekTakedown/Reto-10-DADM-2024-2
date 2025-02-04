@@ -13,14 +13,22 @@ import org.osmdroid.views.overlay.Marker
 class POIManager(private val mapView: MapView) {
     private val APP_TOKEN = "NJiF443Cbj3dTR4pftrJG8AmB"
     private var currentPOIs: List<AcaciasPOI> = emptyList()
-    fun fetchPOIs(selectedCategories: Set<String> = emptySet()) {
+    fun fetchPOIs(selectedCategories: Set<String> = emptySet(), maxEntries: Int = 50) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val response = RetrofitInstance.api.getAcaciasPOIs(APP_TOKEN)
+                val whereClause = if (selectedCategories.isNotEmpty()) {
+                    val categories = selectedCategories.joinToString("','", prefix = "'", postfix = "'")
+                    "categoria in (${categories})"
+                } else null
+
+                val response = RetrofitInstance.api.getAcaciasPOIs(
+                    appToken = APP_TOKEN,
+                    limit = maxEntries,
+                    whereClause = whereClause
+                )
                 
                 if (response.isSuccessful) {
                     currentPOIs = response.body() ?: emptyList()
-                    
                     withContext(Dispatchers.Main) {
                         displayFilteredPOIs(selectedCategories)
                     }
