@@ -80,6 +80,7 @@ class MainActivity : AppCompatActivity(), RadiusDialogFragment.RadiusDialogListe
         )
     }
 
+
     private fun fetchAndCenterOnUserLocation() {
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
@@ -87,10 +88,9 @@ class MainActivity : AppCompatActivity(), RadiusDialogFragment.RadiusDialogListe
                 val userLatitude = location.latitude
                 val userLongitude = location.longitude
                 centerMapOnLocation(userLatitude, userLongitude)
-                fetchPOIs(userLatitude, userLongitude)
-                addDeviceLocationMarker(userLatitude, userLongitude)
                 val poiManager = POIManager(mapView)
-                poiManager.startRealTimeUpdates(userLatitude, userLongitude, 500, "restaurant")
+                poiManager.fetchPOIs() // Now just calls fetchPOIs without parameters
+                addDeviceLocationMarker(userLatitude, userLongitude)
             } else {
                 Snackbar.make(
                     mapView,
@@ -117,7 +117,7 @@ class MainActivity : AppCompatActivity(), RadiusDialogFragment.RadiusDialogListe
         val poiTypes = sharedPreferences.getStringSet("poi_types", setOf("restaurant")) ?: setOf("restaurant")
         val poiManager = POIManager(mapView)
         for (type in poiTypes) {
-            poiManager.fetchPOIs(latitude, longitude, radius, type)
+            poiManager.fetchPOIs()
         }
     }
 

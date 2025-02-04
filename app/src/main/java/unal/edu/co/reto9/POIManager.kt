@@ -11,82 +11,77 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 
 class POIManager(private val mapView: MapView) {
+    private val APP_TOKEN = "NJiF443Cbj3dTR4pftrJG8AmB"
 
-    fun fetchPOIs(latitude: Double, longitude: Double, radius: Int, amenity: String) {
-        val query = "[out:json];node(around:$radius,$latitude,$longitude)[\"amenity\"=\"$amenity\"];out;"
-
+    fun fetchPOIs() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val response = RetrofitInstance.api.getPOIs(query)
+                val response = RetrofitInstance.api.getAcaciasPOIs(APP_TOKEN)
+                
                 if (response.isSuccessful) {
-                    val elements = response.body()?.elements ?: emptyList()
+                    val pois = response.body() ?: emptyList()
+                    
                     withContext(Dispatchers.Main) {
-                        for (element in elements) {
-                            val lat = element.lat
-                            val lon = element.lon
-                            val name = element.tags?.name ?: "Unknown"
-                            val description = element.tags?.description ?: "No description available"
-                            val amenity = element.tags?.amenity ?: "No amenity available"
-                            val openingHours = element.tags?.opening_hours ?: "No opening hours available"
-                            val phone = element.tags?.phone ?: "No phone number available"
-                            addMarker(lat, lon, name, description, amenity, openingHours, phone)
+                        clearExistingMarkers()
+                        pois.forEach { poi ->
+                            try {
+                                val lat = poi.latitudn?.toDoubleOrNull()
+                                val lon = poi.longitudw?.toDoubleOrNull()
+                                
+                                if (lat != null && lon != null && lat != 0.0 && lon != 0.0) {
+                                    addMarker(
+                                        latitude = lat,
+                                        longitude = lon,
+                                        name = poi.nombre,
+                                        description = poi.direccion,
+                                        category = poi.categoria,
+                                        phone = poi.telefono
+                                    )
+                                }
+                            } catch (e: Exception) {
+                                Log.e("POIManager", "Error processing POI: ${poi.nombre}", e)
+                            }
                         }
+                        mapView.invalidate()
                     }
-                } else {
-                    println("HTTP request failed: ${response.code()}")
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
-                println("An error occurred: ${e.localizedMessage}")
-            }
-        }
-    }
-
-    fun startRealTimeUpdates(latitude: Double, longitude: Double, radius: Int, amenity: String) {
-        CoroutineScope(Dispatchers.IO).launch {
-            while (true) {
-                fetchPOIs(latitude, longitude, radius, amenity)
-                delay(10000) // Espera 10 segundos entre actualizaciones
+                Log.e("POIManager", "Error fetching POIs", e)
             }
         }
     }
 
     private fun addMarker(
         latitude: Double,
-        longitude: Double,
+        longitude: Double, 
         name: String,
-        rawDescription: String,
-        rawAmenity: String,
-        rawOpeningHours: String,
-        rawPhone: String
+        description: String,
+        category: String,
+        phone: String
     ) {
         val marker = Marker(mapView)
         marker.position = GeoPoint(latitude, longitude)
         marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-
-        // Title
         marker.title = name
-
-        // Combine all details into marker snippet to show in default InfoWindow
-        val details = StringBuilder()
-        if (rawDescription != "No description available") {
-            details.appendLine(rawDescription)
-        }
-        if (rawAmenity != "No amenity available") {
-            details.appendLine("Amenity: $rawAmenity")
-        }
-        if (rawOpeningHours != "No opening hours available") {
-            details.appendLine("Opening Hours: $rawOpeningHours")
-        }
-        if (rawPhone != "No phone number available") {
-            details.appendLine("Phone: $rawPhone")
-        }
-        marker.snippet = details.toString()
-
-        // Remove any custom InfoWindow assignment to use the default
-        // marker.infoWindow = CustomInfoWindow(mapView)
-
+        marker.snippet = """
+            ${category}
+            ${description}
+            Tel: ${phone}
+        """.trimIndent()
+        
+        marker.infoWindow = CustomInfoWindow(mapView)
         mapView.overlays.add(marker)
+    }
+
+    private fun clearExistingMarkers() {
+        // Create a list of markers to remove
+        val markersToRemove = mapView.overlays.filterIsInstance<Marker>()
+        
+        // Remove all markers from overlays
+        mapView.overlays.removeAll(markersToRemove)
+        
+        // Refresh the map
         mapView.invalidate()
     }
+
 }

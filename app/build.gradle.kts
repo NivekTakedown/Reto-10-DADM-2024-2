@@ -58,6 +58,7 @@ dependencies {
     implementation(libs.converter.gson)
     implementation(libs.material)
     implementation(libs.play.services.location)
+    implementation(libs.logging.interceptor)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
