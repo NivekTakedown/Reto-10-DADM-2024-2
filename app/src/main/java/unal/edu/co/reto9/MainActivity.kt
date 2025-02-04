@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity(), RadiusDialogFragment.RadiusDialogListe
     private lateinit var mapView: MapView
     private val REQUEST_LOCATION_PERMISSION = 1
     private var deviceLocationMarker: Marker? = null
+    private lateinit var poiManager: POIManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,6 +65,7 @@ class MainActivity : AppCompatActivity(), RadiusDialogFragment.RadiusDialogListe
         btnSelectPOITypes.setOnClickListener {
             showPOITypeDialog()
         }
+        poiManager = POIManager(mapView)
     }
 
     private fun checkLocationPermission(): Boolean {
@@ -88,15 +90,12 @@ class MainActivity : AppCompatActivity(), RadiusDialogFragment.RadiusDialogListe
                 val userLatitude = location.latitude
                 val userLongitude = location.longitude
                 centerMapOnLocation(userLatitude, userLongitude)
-                val poiManager = POIManager(mapView)
-                poiManager.fetchPOIs() // Now just calls fetchPOIs without parameters
+                val selectedTypes = getSharedPreferences("app_prefs", MODE_PRIVATE)
+                    .getStringSet("poi_types", null) ?: emptySet()
+                poiManager.fetchPOIs(selectedTypes)
                 addDeviceLocationMarker(userLatitude, userLongitude)
             } else {
-                Snackbar.make(
-                    mapView,
-                    "Unable to fetch location. Please try again.",
-                    Snackbar.LENGTH_LONG
-                ).show()
+                Snackbar.make(mapView, "No se pudo obtener la ubicación", Snackbar.LENGTH_LONG).show()
             }
         }
     }
@@ -152,12 +151,9 @@ class MainActivity : AppCompatActivity(), RadiusDialogFragment.RadiusDialogListe
     }
 
     override fun onPOITypesUpdated() {
-        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-            if (location != null) {
-                fetchPOIs(location.latitude, location.longitude)
-            }
-        }
+        val selectedTypes = getSharedPreferences("app_prefs", MODE_PRIVATE)
+            .getStringSet("poi_types", null) ?: emptySet()
+        poiManager.updateFilters(selectedTypes)
     }
 
     override fun onRequestPermissionsResult(

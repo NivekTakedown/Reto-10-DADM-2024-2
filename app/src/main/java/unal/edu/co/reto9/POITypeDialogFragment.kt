@@ -27,21 +27,22 @@ class POITypeDialogFragment : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         sharedPreferences = requireActivity().getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        val selectedTypes = sharedPreferences.getStringSet("poi_types", setOf("restaurant"))?.toTypedArray()
-        val poiTypes = arrayOf("restaurant", "cafe", "bar", "hotel", "park")
-        val checkedItems = poiTypes.map { it in selectedTypes!! }.toBooleanArray()
+        val selectedTypes = sharedPreferences.getStringSet("poi_types", null) ?: emptySet()
+        
+        val poiTypes = POICategory.values().map { it.display }.toTypedArray()
+        val checkedItems = poiTypes.map { it in selectedTypes }.toBooleanArray()
 
         return MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Select POI Types")
+            .setTitle("Seleccionar Categorías")
             .setMultiChoiceItems(poiTypes, checkedItems) { _, which, isChecked ->
                 checkedItems[which] = isChecked
             }
-            .setPositiveButton("Save") { _, _ ->
+            .setPositiveButton("Guardar") { _, _ ->
                 val selected = poiTypes.filterIndexed { index, _ -> checkedItems[index] }.toSet()
                 sharedPreferences.edit().putStringSet("poi_types", selected).apply()
                 listener?.onPOITypesUpdated()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton("Cancelar", null)
             .create()
     }
 

@@ -12,37 +12,17 @@ import org.osmdroid.views.overlay.Marker
 
 class POIManager(private val mapView: MapView) {
     private val APP_TOKEN = "NJiF443Cbj3dTR4pftrJG8AmB"
-
-    fun fetchPOIs() {
+    private var currentPOIs: List<AcaciasPOI> = emptyList()
+    fun fetchPOIs(selectedCategories: Set<String> = emptySet()) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val response = RetrofitInstance.api.getAcaciasPOIs(APP_TOKEN)
                 
                 if (response.isSuccessful) {
-                    val pois = response.body() ?: emptyList()
+                    currentPOIs = response.body() ?: emptyList()
                     
                     withContext(Dispatchers.Main) {
-                        clearExistingMarkers()
-                        pois.forEach { poi ->
-                            try {
-                                val lat = poi.latitudn?.toDoubleOrNull()
-                                val lon = poi.longitudw?.toDoubleOrNull()
-                                
-                                if (lat != null && lon != null && lat != 0.0 && lon != 0.0) {
-                                    addMarker(
-                                        latitude = lat,
-                                        longitude = lon,
-                                        name = poi.nombre,
-                                        description = poi.direccion,
-                                        category = poi.categoria,
-                                        phone = poi.telefono
-                                    )
-                                }
-                            } catch (e: Exception) {
-                                Log.e("POIManager", "Error processing POI: ${poi.nombre}", e)
-                            }
-                        }
-                        mapView.invalidate()
+                        displayFilteredPOIs(selectedCategories)
                     }
                 }
             } catch (e: Exception) {
@@ -62,6 +42,8 @@ class POIManager(private val mapView: MapView) {
         val marker = Marker(mapView)
         marker.position = GeoPoint(latitude, longitude)
         marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+        
+        // Set title and format description for default bubble
         marker.title = name
         marker.snippet = """
             ${category}
@@ -69,8 +51,43 @@ class POIManager(private val mapView: MapView) {
             Tel: ${phone}
         """.trimIndent()
         
-        marker.infoWindow = CustomInfoWindow(mapView)
         mapView.overlays.add(marker)
+    }
+    private fun displayFilteredPOIs(selectedCategories: Set<String>) {
+        clearExistingMarkers()
+        
+        val filteredPOIs = if (selectedCategories.isEmpty()) {
+            currentPOIs
+        } else {
+            currentPOIs.filter { poi ->
+                selectedCategories.contains(poi.categoria)
+            }
+        }
+
+        filteredPOIs.forEach { poi ->
+            try {
+                val lat = poi.latitudn?.toDoubleOrNull()
+                val lon = poi.longitudw?.toDoubleOrNull()
+                
+                if (lat != null && lon != null && lat != 0.0 && lon != 0.0) {
+                    addMarker(
+                        latitude = lat,
+                        longitude = lon,
+                        name = poi.nombre,
+                        description = poi.direccion,
+                        category = poi.categoria,
+                        phone = poi.telefono
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("POIManager", "Error processing POI: ${poi.nombre}", e)
+            }
+        }
+        mapView.invalidate()
+    }
+
+    fun updateFilters(selectedCategories: Set<String>) {
+        displayFilteredPOIs(selectedCategories)
     }
 
     private fun clearExistingMarkers() {
